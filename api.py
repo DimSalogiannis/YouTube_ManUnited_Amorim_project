@@ -28,6 +28,7 @@ try:
 except FileNotFoundError:
     pass
 
+# the following function is used to get the video data from the youutube API using the search parameters
 def get_video_data(start_date, end_date):
     all_videos_ids = []
     next_page_token = None
@@ -36,17 +37,32 @@ def get_video_data(start_date, end_date):
     while True:
         if api_calls >= DAILY_LIMIT / API_COST_PER_CALL:
             break
+          
+        # snippet to make the request to the youtube API
+        request = youtube.search().list(
+            part = 'snippet',
+            q = QUERY, 
+            type = 'video',
+            maxResults = MAX_RESULTS,
+            publishedAfter = start_date,
+            publishedBefore = end_date,
+            pageToke = next_page_token
+        )
+        response = request.execure()
+        api_calls += 1
         
-    request = youtube.search().list(
-        part = 'snippet',
-        q = QUERY, 
-        type = 'video',
-        maxResults = MAX_RESULTS,
-        publishedAfter = start_date,
-        publishedBefore = end_date,
-        pageToke = next_page_token
-    )
-    response = request.execure()
-    api_calls += 1
+        # snippet to get the video id and the published dates from the response
+        for itme in response.get('items', []):
+            video_id = item['id']['videoId']
+            published_date = item['snippet']['publishedAt']
+            all_videos_ids.append((video_id, published_date))
+            
+            
+        next_page_token = response.get('nextPageToken')
+        
+        if not next_page_token:
+            break
     
-    
+    return all_videos_ids
+
+
