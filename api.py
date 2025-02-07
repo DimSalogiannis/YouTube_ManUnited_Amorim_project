@@ -65,4 +65,6 @@ def get_video_data(start_date, end_date):
     
     return all_videos_ids
 
+videos_ids_dates = get_video_data(START_DATE, END_DATE)
+
 
