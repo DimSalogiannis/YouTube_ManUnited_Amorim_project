@@ -102,3 +102,9 @@ def get_video_details(video_ids):
             })
                 
         time.sleep(1)
+        
+    return video_stats
+
+video_ids = [video[0] for video in videos_ids_dates]
+
+videos_details = get_video_details(video_ids)
