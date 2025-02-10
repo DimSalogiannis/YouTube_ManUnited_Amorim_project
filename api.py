@@ -39,6 +39,8 @@ def get_video_data(start_date, end_date):
     while True:
         if api_calls >= DAILY_LIMIT / API_COST_PER_CALL:
             break
+        
+        print(f"Fetching page {api_calls + 1}...")
           
         # snippet to make the request to the youtube API
         request = youtube.search().list(
@@ -63,6 +65,7 @@ def get_video_data(start_date, end_date):
         next_page_token = response.get('nextPageToken', None)
         
         if next_page_token is None:
+            print(f"Finished fetching. Total pages fetched: {api_calls}")
             break
     
     return all_videos_ids
