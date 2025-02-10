@@ -15,7 +15,7 @@ youtube = build('youtube', 'v3', developerKey = api_key)
 # search parameters of the data
 QUERY = 'Manchester United'
 START_DATE = '2024-08-11T00:00:00Z'
-END_DATE = datetime.now(timezone.utc).isoformat("T") + "Z"
+END_DATE = datetime.now(timezone.utc).replace(microsecond = 0).strftime('%Y-%m-%dT%H:%M:%SZ')
 MAX_RESULTS = 50 # maximum number of results to return 
 DAILY_LIMIT = 10000 # maximum number of requests per day
 API_COST_PER_CALL = 100
@@ -48,9 +48,9 @@ def get_video_data(start_date, end_date):
             maxResults = MAX_RESULTS,
             publishedAfter = start_date,
             publishedBefore = end_date,
-            pageToke = next_page_token
+            pageToken = next_page_token
         )
-        response = request.execure()
+        response = request.execute()
         api_calls += 1
         
         # snippet to get the video id and the published dates from the response
@@ -60,20 +60,20 @@ def get_video_data(start_date, end_date):
             all_videos_ids.append((video_id, published_date))
             
             
-        next_page_token = response.get('nextPageToken')
+        next_page_token = response.get('nextPageToken', None)
         
-        if not next_page_token:
+        if next_page_token is None:
             break
     
     return all_videos_ids
 
 # calling the function to get the video data
-videos_ids_dates = get_video_data(START_DATE, END_DATE)
+all_videos_ids = get_video_data(START_DATE, END_DATE)
 
 
 # sace the last date of the request to a file 
-if videos_ids_dates:
-    last_date = videos_ids_dates[-1][1] 
+if all_videos_ids:
+    last_date = all_videos_ids[-1][1] 
     with open('last_date.txt', 'w') as f:
         f.write(last_date)
         
@@ -82,9 +82,12 @@ if videos_ids_dates:
 def get_video_details(video_ids):
     video_stats = []
     
+    if not video_ids:
+        return video_stats
+    
     for i in range(0, len(video_ids), 50):
         request = youtube.videos().list(
-            part = 'snippet, statistics',
+            part = 'snippet,statistics',
             id = ','.join(video_ids[i:i+50])
         )
         response = request.execute()
@@ -96,8 +99,8 @@ def get_video_details(video_ids):
                 'description': item['snippet']['description'],
                 'channelTitle': item['snippet']['channelTitle'],
                 'publishedAt': item['snippet']['publishedAt'],
-                'viewCount': item['statistics'].get('viewCount', 0),
-                'likeCount': item['statistics'].get('likeCount', 0),
+                'viewCount': int(item['statistics'].get('viewCount', 0)),
+                'likeCount': int(item['statistics'].get('likeCount', 0)),
                 'tags': item['snippet'].get('tags', []),
                 'categoryId': item['snippet']['categoryId']
             })
@@ -106,23 +109,26 @@ def get_video_details(video_ids):
         
     return video_stats
 
-video_ids = [video[0] for video in videos_ids_dates]
+video_ids = [video[0] for video in all_videos_ids]
 
 videos_details = get_video_details(video_ids)
 
 
 # the following part is used to save the data to a parquet file
 
-df = pd.DataFrame(videos_details)
+if not videos_details:
+    print('No data to save! Skipping the update process')
+else:
+    df = pd.DataFrame(videos_details)
 
-# as new data will be added to the file each time the file is read, 
-# we need to make sure that the file will not be overwritten
-try:
-    existing_df = pd.read_parquet('youtube_data.parquet')
-    df = pd.concat([existing_df, df])
-except FileNotFoundError:
-    pass
+    # as new data will be added to the file each time the file is read, 
+    # we need to make sure that the file will not be overwritten
+    try:
+        existing_df = pd.read_parquet('youtube_data.parquet')
+        df = pd.concat([existing_df, df])
+    except FileNotFoundError:
+        pass
 
-df.to_parquet('youtube_data.parquet', index = False)
+    df.to_parquet('youtube_data.parquet', index = False)
 
-print('Daily data collection completed!')
+    print('Daily data collection completed!')
