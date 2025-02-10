@@ -4,6 +4,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import time
+import pandas as pd
 import os
 
 load_dotenv()
@@ -108,3 +109,9 @@ def get_video_details(video_ids):
 video_ids = [video[0] for video in videos_ids_dates]
 
 videos_details = get_video_details(video_ids)
+
+
+# the following part is used to save the data to a parquet file
+
+df = pd.DataFrame(videos_details)
+
