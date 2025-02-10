@@ -3,6 +3,7 @@ import seaborn as sns
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
+import time
 import os
 
 load_dotenv()
@@ -65,6 +66,39 @@ def get_video_data(start_date, end_date):
     
     return all_videos_ids
 
+# calling the function to get the video data
 videos_ids_dates = get_video_data(START_DATE, END_DATE)
 
 
+# sace the last date of the request to a file 
+if videos_ids_dates:
+    last_date = videos_ids_dates[-1][1] 
+    with open('last_date.txt', 'w') as f:
+        f.write(last_date)
+        
+        
+# the following function is used to get video details 
+def get_video_details(video_ids):
+    video_stats = []
+    
+    for i in range(0, len(video_ids), 50):
+        request = youtube.videos().list(
+            part = 'snippet, statistics',
+            id = ','.join(video_ids[i:i+50])
+        )
+        response = request.execute()
+        
+        for item in response.get('items', []):
+            video_stats.append({
+                'videoId': item['id'],
+                'title': item['snippet']['title'],
+                'description': item['snippet']['description'],
+                'channelTitle': item['snippet']['channelTitle'],
+                'publishedAt': item['snippet']['publishedAt'],
+                'viewCount': item['statistics'].get('viewCount', 0),
+                'likeCount': item['statistics'].get('likeCount', 0),
+                'tags': item['snippet'].get('tags', []),
+                'categoryId': item['snippet']['categoryId']
+            })
+                
+        time.sleep(1)
