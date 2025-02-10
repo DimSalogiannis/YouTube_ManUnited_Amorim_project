@@ -115,3 +115,14 @@ videos_details = get_video_details(video_ids)
 
 df = pd.DataFrame(videos_details)
 
+# as new data will be added to the file each time the file is read, 
+# we need to make sure that the file will not be overwritten
+try:
+    existing_df = pd.read_parquet('youtube_data.parquet')
+    df = pd.concat([existing_df, df])
+except FileNotFoundError:
+    pass
+
+df.to_parquet('youtube_data.parquet', index = False)
+
+print('Daily data collection completed!')
