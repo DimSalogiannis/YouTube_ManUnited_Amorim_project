@@ -53,7 +53,7 @@ def get_video_data(start_date, end_date):
         api_calls += 1
         
         # snippet to get the video id and the published dates from the response
-        for itme in response.get('items', []):
+        for item in response.get('items', []):
             video_id = item['id']['videoId']
             published_date = item['snippet']['publishedAt']
             all_videos_ids.append((video_id, published_date))
